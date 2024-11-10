@@ -38,12 +38,14 @@ class LowRankLinear(nn.Module):
         if r > 0:
             self.lora_A = nn.Parameter(weight.new_zeros((r, in_features)))
             self.lora_B = nn.Parameter(weight.new_zeros((out_features, r)))
+            # === trainable gete unit
             self.gate = nn.Parameter(torch.randn(1, r))
             self.scaling = self.lora_alpha / self.r
             nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
             nn.init.zeros_(self.lora_B)
 
     def forward(self, x):
+        # === Eq 9: z ← Wu (g ⊙ (Wd x))
         return ((self.lora_dropout(x) @ self.lora_A.T).mul(self.gate) @ self.lora_B.T) * self.scaling
 
 @dataclass

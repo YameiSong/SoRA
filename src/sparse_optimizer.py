@@ -61,7 +61,6 @@ class SparseAdamW(AdamW):
             loss = closure()
 
         for group in self.param_groups:
-            # === p is a prameter tensor
             for p in group["params"]:
                 if p.grad is None:
                     continue
@@ -112,10 +111,19 @@ class SparseAdamW(AdamW):
                     # p.data.add_(p.data, alpha=(-group["lr"] * group["weight_decay"]))
                     to_add = to_add + (-group["lr"] * group["weight_decay"]) * p.data
                 p.data.add_(to_add) 
-
-                # === sparse regularization?
+                
                 # soft thresholding function
                 if self.sparse_lambda > 0:
+                    # === Sparse regularization
+                    # * Positive Values: For elements in p.data that are greater than self.sparse_lambda, 
+                    # the value of self.sparse_lambda is subtracted from them. This reduces the magnitude 
+                    # of these positive values.
+                    # * Negative Values: For elements in p.data that are less than -self.sparse_lambda, 
+                    # the value of self.sparse_lambda is added to them. This reduces the magnitude of these 
+                    # negative values.
+                    # * Small Magnitude Values: For elements in p.data whose absolute value is less than 
+                    # self.sparse_lambda, the value is set to 0. This effectively zeroes out small values, 
+                    # promoting sparsity in the parameter tensor.
                     p.data[p.data > self.sparse_lambda] -= self.sparse_lambda
                     p.data[p.data < -self.sparse_lambda] += self.sparse_lambda
                     p.data[abs(p.data) < self.sparse_lambda] = 0.0
