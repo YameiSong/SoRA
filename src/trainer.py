@@ -99,7 +99,7 @@ import sys
 from transformers.optimization import Adafactor, AdamW, get_scheduler
 from .util import compute_trainable_sparse_param
 
-
+# === Sora sparse gate
 GATE_PARAM_NAME= "lora.gate"
 
 TRAINING_ARGS_NAME = "training_args.bin"
@@ -309,9 +309,13 @@ class SparseTrainerMixin:
 
         metrics = None
         if self.control.should_evaluate:
+            # === print out the number of trainable sparse parameters
             sparse_param, total_param = compute_trainable_sparse_param(self.model)
             logger.info("********\nlambda=%f\nNumber of trainable full param: %d\nNumber of trainable sparse param: %d, Ratio: %.4f%%\n**********" % (self.sparse_lambda, total_param, sparse_param, sparse_param / total_param * 100))
             if isinstance(self.eval_dataset, List):
+                # === run_glue.py: calls `task.get` to get the eval_dataset
+                # === glue_tasks.py: calls `AbstractTask.get`
+                # === processor.py: defines `AbstractTask.get(self, split, n_obs=None, split_validation_test=False)`, which may return a dataset or a list of datasets
                 metrics = self.evaluate(eval_dataset=self.eval_dataset[0], ignore_keys=ignore_keys_for_eval, metric_key_prefix="eval")
                 self._report_to_hp_search(trial, epoch, metrics)
 
@@ -338,6 +342,8 @@ class SparseTrainerMixin:
         if self.optimizer is None:
             decay_parameters = get_parameter_names(self.model, [nn.LayerNorm])
             decay_parameters = [name for name in decay_parameters if "bias" not in name]
+
+            # === Remove the gate parameters from the optimizer because SoRa uses a different sparse optimizer for the gate parameters
             print(f"removing {GATE_PARAM_NAME} from standard optimizer")
             optimizer_grouped_parameters = [
                 {
@@ -396,7 +402,8 @@ class SparseTrainerMixin:
             # We don't use .loss here since the model may return tuples instead of ModelOutput.
             loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
 
-
+        # === Add the sparse loss
+        # === Eq 14 in the SoRa paper
         if self.args.train_sparse:
             sparse_loss = 0.0
             p_total = 0
@@ -404,6 +411,8 @@ class SparseTrainerMixin:
                 if "lora.gate" in n:
                     sparse_loss += torch.sum(torch.abs(p))
                     p_total += torch.numel(p.data)  
+            # === sparse_loss is the L1 norm of the gate parameters,
+            # === divided by p_total to normalize it
             loss += self.sparse_lambda * sparse_loss / p_total 
 
         return (loss, outputs) if return_outputs else loss
@@ -760,12 +769,13 @@ class SparseTrainerMixin:
                             )
 
                     # Optimizer step
+                    # === If self.args.train_sparse is True, call the `step` method of the sparse optimizer
                     optimizer_was_run = True
                     if self.deepspeed:
                         pass  # called outside the loop
                     elif is_torch_tpu_available():
                         xm.optimizer_step(self.optimizer)
-                        if self.args.train_sparse:
+                        if self.args.train_sparse: # === step
                             xm.optimizer_step(self.sparse_optimizer)
 
                     elif self.do_grad_scaling:
@@ -773,7 +783,7 @@ class SparseTrainerMixin:
                         self.scaler.step(self.optimizer)
                         self.scaler.update()
                         scale_after = self.scaler.get_scale()
-                        if self.args.train_sparse:
+                        if self.args.train_sparse: # === step
                             scale_before = self.scaler.get_scale()
                             self.scaler.step(self.sparse_optimizer)
                             self.scaler.update()
@@ -783,12 +793,12 @@ class SparseTrainerMixin:
                     else:
                         self.optimizer.step()
                         
-                        if self.args.train_sparse:
+                        if self.args.train_sparse: # === step
                             self.sparse_optimizer.step()
 
                     if optimizer_was_run and not self.deepspeed:
                         self.lr_scheduler.step()
-                        if self.args.train_sparse and self.sparse_scheduler is not None:
+                        if self.args.train_sparse and self.sparse_scheduler is not None: # === step
                             self.sparse_scheduler.step()
                     
 
