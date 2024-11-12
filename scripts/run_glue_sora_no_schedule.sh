@@ -25,7 +25,7 @@ python -u run_glue.py \
     --do_predict \
     --do_train \
     --task_name $task \
-    --metric_file ../../evaluate/metrics/glue/glue.py \
+    --metric_file ../evaluate/metrics/glue/glue.py \
     --eval_steps 1000 \
     --evaluation_strategy steps \
     --greater_is_better true \
