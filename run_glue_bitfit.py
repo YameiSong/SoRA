@@ -18,8 +18,8 @@
 
 import logging
 import os
-import wandb
-os.environ['WANDB_MODE'] = 'offline'
+# import wandb
+# os.environ['WANDB_MODE'] = 'offline'
 import random
 import sys
 from dataclasses import dataclass, field
