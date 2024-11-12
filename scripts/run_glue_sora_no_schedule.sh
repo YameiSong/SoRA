@@ -25,7 +25,6 @@ python -u run_glue.py \
     --do_predict \
     --do_train \
     --task_name $task \
-    --metric_file ../evaluate/metrics/glue/glue.py \
     --eval_steps 1000 \
     --evaluation_strategy steps \
     --greater_is_better true \
@@ -34,7 +33,7 @@ python -u run_glue.py \
     --load_best_model_at_end \
     --logging_steps 100 \
     --max_steps -1 \
-    --model_name_or_path microsoft/deberta-v3-base \
+    --model_name_or_path /root/xtlv/data/models/DeBERTaV3_base \
     --num_train_epochs $epoch \
     --output_dir results/${task}_lora_r_${lora_r}_lambda_${lambda}_lambda2_${lambda2}_lr_${lr}_epoch_${epoch}_bsz_${bsz}_seed_${seed} \
     --overwrite_output_dir \
@@ -43,7 +42,7 @@ python -u run_glue.py \
     --save_steps 1000 \
     --save_strategy steps \
     --save_total_limit 1 \
-    --tokenizer_name microsoft/deberta-v3-base \
+    --tokenizer_name /root/xtlv/data/models/DeBERTaV3_base \
     --warmup_ratio 0.06 \
     --warmup_steps 0 \
     --weight_decay 0.1 \
