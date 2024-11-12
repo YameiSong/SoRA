@@ -405,7 +405,7 @@ def main():
     # === Updated load dataset code ===
     if data_args.task_name is not None and data_args.train_file is None:
         # Downloading and loading a dataset from the hub.
-        datasets = load_dataset("glue", data_args.task_name)
+        raw_datasets = load_dataset("glue", data_args.task_name)
     else:
         # Loading a dataset from your local files.
         # CSV/JSON training and evaluation files are needed.
@@ -439,13 +439,13 @@ def main():
 
         if data_args.train_file.endswith(".csv"):
             # Loading a dataset from local csv files
-            datasets = load_dataset("csv", data_files=data_files)
+            raw_datasets = load_dataset("csv", data_files=data_files)
         elif data_args.train_file.endswith(".parquet"):
             # Loading a dataset from local parquet files
-            datasets = load_dataset("parquet", data_files=data_files)
+            raw_datasets = load_dataset("parquet", data_files=data_files)
         else:
             # Loading a dataset from local json files
-            datasets = load_dataset("json", data_files=data_files)
+            raw_datasets = load_dataset("json", data_files=data_files)
 
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
