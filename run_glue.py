@@ -345,60 +345,108 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if data_args.task_name is not None:
+
+    # === Sora original load dataset code ===
+    # if data_args.task_name is not None:
+    #     # Downloading and loading a dataset from the hub.
+    #     from datasets import load_from_disk
+    #     from src.glue_tasks import AutoTask
+    #     raw_datasets = load_from_disk(data_path + data_args.task_name)
+
+    #     task = AutoTask().get(task_name_for_get, None, None)
+    #     raw_datasets = {
+    #         "train": task.get("train", split_validation_test=True),
+    #         "validation": task.get("validation", split_validation_test=True),
+    #         "test": task.get("test", split_validation_test=True)
+    #     }
+    #     from datasets import DatasetDict
+    #     raw_datasets = DatasetDict(raw_datasets)
+
+    # elif data_args.dataset_name is not None:
+    #     raise NotImplementedError
+    # else:
+    #     # Loading a dataset from your local files.
+    #     # CSV/JSON training and evaluation files are needed.
+    #     data_files = {"train": data_args.train_file, "validation": data_args.validation_file}
+
+    #     # Get the test dataset: you can provide your own CSV/JSON test file (see below)
+    #     # when you use `do_predict` without specifying a GLUE benchmark task.
+    #     if training_args.do_predict:
+    #         if data_args.test_file is not None:
+    #             train_extension = data_args.train_file.split(".")[-1]
+    #             test_extension = data_args.test_file.split(".")[-1]
+    #             assert (
+    #                 test_extension == train_extension
+    #             ), "`test_file` should have the same extension (csv or json) as `train_file`."
+    #             data_files["test"] = data_args.test_file
+    #         else:
+    #             raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
+
+    #     for key in data_files.keys():
+    #         logger.info(f"load a local file for {key}: {data_files[key]}")
+
+    #     if data_args.train_file.endswith(".csv"):
+    #         # Loading a dataset from local csv files
+    #         raw_datasets = load_dataset(
+    #             "csv",
+    #             data_files=data_files,
+    #             cache_dir=model_args.cache_dir,
+    #             use_auth_token=True if model_args.use_auth_token else None,
+    #         )
+    #     else:
+    #         # Loading a dataset from local json files
+    #         raw_datasets = load_dataset(
+    #             "json",
+    #             data_files=data_files,
+    #             cache_dir=model_args.cache_dir,
+    #             use_auth_token=True if model_args.use_auth_token else None,
+    #         )
+
+    # === Updated load dataset code ===
+    if data_args.task_name is not None and data_args.train_file is None:
         # Downloading and loading a dataset from the hub.
-        from datasets import load_from_disk
-        from src.glue_tasks import AutoTask
-        raw_datasets = load_from_disk(data_path + data_args.task_name)
-
-        task = AutoTask().get(task_name_for_get, None, None)
-        raw_datasets = {
-            "train": task.get("train", split_validation_test=True),
-            "validation": task.get("validation", split_validation_test=True),
-            "test": task.get("test", split_validation_test=True)
-        }
-        from datasets import DatasetDict
-        raw_datasets = DatasetDict(raw_datasets)
-
-    elif data_args.dataset_name is not None:
-        raise NotImplementedError
+        datasets = load_dataset("glue", data_args.task_name)
     else:
         # Loading a dataset from your local files.
         # CSV/JSON training and evaluation files are needed.
-        data_files = {"train": data_args.train_file, "validation": data_args.validation_file}
-
-        # Get the test dataset: you can provide your own CSV/JSON test file (see below)
-        # when you use `do_predict` without specifying a GLUE benchmark task.
-        if training_args.do_predict:
-            if data_args.test_file is not None:
-                train_extension = data_args.train_file.split(".")[-1]
-                test_extension = data_args.test_file.split(".")[-1]
-                assert (
-                    test_extension == train_extension
-                ), "`test_file` should have the same extension (csv or json) as `train_file`."
-                data_files["test"] = data_args.test_file
-            else:
-                raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
+        if data_args.task_name == "mnli":
+            data_files = {
+                "train": data_args.train_file, 
+                "validation_matched": data_args.validation_file,
+                "validation_mismatched": data_args.validation_file.replace("_matched", "_mismatched"),
+            }
+            if training_args.do_predict:
+                if data_args.test_file is not None:
+                    data_files["test_matched"] = data_args.test_file
+                    data_files["test_mismatched"] = data_args.test_file.replace("_matched", "_mismatched")
+        else:
+            data_files = {"train": data_args.train_file, "validation": data_args.validation_file}
+            # Get the test dataset: you can provide your own CSV/JSON test file (see below)
+            # when you use `do_predict` without specifying a GLUE benchmark task.
+            if training_args.do_predict:
+                if data_args.test_file is not None:
+                    train_extension = data_args.train_file.split(".")[-1]
+                    test_extension = data_args.test_file.split(".")[-1]
+                    assert (
+                        test_extension == train_extension
+                    ), "`test_file` should have the same extension (csv or json) as `train_file`."
+                    data_files["test"] = data_args.test_file
+                else:
+                    raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
 
         for key in data_files.keys():
             logger.info(f"load a local file for {key}: {data_files[key]}")
 
         if data_args.train_file.endswith(".csv"):
             # Loading a dataset from local csv files
-            raw_datasets = load_dataset(
-                "csv",
-                data_files=data_files,
-                cache_dir=model_args.cache_dir,
-                use_auth_token=True if model_args.use_auth_token else None,
-            )
+            datasets = load_dataset("csv", data_files=data_files)
+        elif data_args.train_file.endswith(".parquet"):
+            # Loading a dataset from local parquet files
+            datasets = load_dataset("parquet", data_files=data_files)
         else:
             # Loading a dataset from local json files
-            raw_datasets = load_dataset(
-                "json",
-                data_files=data_files,
-                cache_dir=model_args.cache_dir,
-                use_auth_token=True if model_args.use_auth_token else None,
-            )
+            datasets = load_dataset("json", data_files=data_files)
+
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
