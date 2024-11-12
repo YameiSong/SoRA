@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import datasets
+import evaluate
 import numpy as np
 from datasets import load_dataset
 
@@ -619,11 +620,17 @@ def main():
             logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
     
     # Get the metric function
-    from datasets import load_metric
-    if data_args.task_name is not None:
-        metric = load_metric("./glue.py", data_args.task_name)
+    # from datasets import load_metric
+    # if data_args.task_name is not None:
+    #     metric = load_metric("./glue.py", data_args.task_name)
+    # else:
+    #     metric = load_metric("accuracy")
+    if data_args.task_name is not None and data_args.metric_file is None:
+        # metric = load_metric("glue", data_args.task_name)
+        metric = evaluate.load("glue", data_args.task_name)
     else:
-        metric = load_metric("accuracy")
+        # metric = load_metric(data_args.metric_file, trust_remote_code=True)
+        metric = evaluate.load(data_args.metric_file, data_args.task_name)
 
     # You can define your custom compute_metrics function. It takes an `EvalPrediction` object (a namedtuple with a
     # predictions and label_ids field) and has to return a dictionary string to float.
