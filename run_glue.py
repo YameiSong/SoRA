@@ -508,7 +508,8 @@ def main():
         from opendelta.delta_models import LoraModel, LoraConfig
 
     import json
-    lora_config = json.load(open("config/lora_config.json"))
+    # lora_config = json.load(open("config/lora_config.json"))
+    lora_config = json.load(open(model_args.config_name))
     lora_config["lora_r"] = sparse_args.lora_r
     lora_config = LoraConfig.from_dict(lora_config)
     delta_model = LoraModel.from_config(lora_config, backbone_model=model)
