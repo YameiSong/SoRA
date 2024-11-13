@@ -166,6 +166,7 @@ class DataTrainingArguments:
     )
     test_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test data."})
     metric_file: Optional[str] = field(default=None, metadata={"help": "A py file to compute the metric for the task."})
+    lora_config_file: Optional[str] = field(default=None, metadata={"help": "A json file containing the lora config."})
 
     def __post_init__(self):
         if self.task_name is not None:
@@ -509,7 +510,7 @@ def main():
 
     import json
     # lora_config = json.load(open("config/lora_config.json"))
-    lora_config = json.load(open(model_args.config_name))
+    lora_config = json.load(open(model_args.lora_config_file))
     lora_config["lora_r"] = sparse_args.lora_r
     lora_config = LoraConfig.from_dict(lora_config)
     delta_model = LoraModel.from_config(lora_config, backbone_model=model)
