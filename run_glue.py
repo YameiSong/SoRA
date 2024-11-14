@@ -166,7 +166,6 @@ class DataTrainingArguments:
     )
     test_file: Optional[str] = field(default=None, metadata={"help": "A csv or a json file containing the test data."})
     metric_file: Optional[str] = field(default=None, metadata={"help": "A py file to compute the metric for the task."})
-    lora_config_file: Optional[str] = field(default=None, metadata={"help": "A json file containing the lora config."})
 
     def __post_init__(self):
         if self.task_name is not None:
@@ -240,6 +239,9 @@ class SparseArguments:
     )
     lora_r: Optional[int] = field(
         default=16, metadata={"help": "matrix rank in lora"}
+    )
+    lora_config_file: Optional[str] = field(
+        default=None, metadata={"help": "A json file containing the lora config."}
     )
     lambda_schedule: Optional[str] = field(
         default=None, metadata={"help": "scheduling of lambda_2, {linear, log_linear}"}
@@ -510,7 +512,7 @@ def main():
 
     import json
     # lora_config = json.load(open("config/lora_config.json"))
-    lora_config = json.load(open(training_args.lora_config_file))
+    lora_config = json.load(open(sparse_args.lora_config_file))
     lora_config["lora_r"] = sparse_args.lora_r
     lora_config = LoraConfig.from_dict(lora_config)
     delta_model = LoraModel.from_config(lora_config, backbone_model=model)
