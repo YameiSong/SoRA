@@ -510,7 +510,7 @@ def main():
 
     import json
     # lora_config = json.load(open("config/lora_config.json"))
-    lora_config = json.load(open(model_args.lora_config_file))
+    lora_config = json.load(open(training_args.lora_config_file))
     lora_config["lora_r"] = sparse_args.lora_r
     lora_config = LoraConfig.from_dict(lora_config)
     delta_model = LoraModel.from_config(lora_config, backbone_model=model)
