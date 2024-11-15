@@ -287,24 +287,6 @@ class SparseTrainerMixin:
                 metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
 
         return EvalLoopOutput(predictions=all_preds, label_ids=all_labels, metrics=metrics, num_samples=num_samples)
-    
-    # Copied from Accelerate.
-    def _nested_gather(self, tensors, name=None):
-        """
-        Gather value of `tensors` (tensor or list/tuple of nested tensors) and convert them to numpy before
-        concatenating them to `gathered`
-        """
-        if tensors is None:
-            return
-        if is_torch_tpu_available():
-            if name is None:
-                name = "nested_gather"
-            tensors = nested_xla_mesh_reduce(tensors, name)
-        elif is_sagemaker_mp_enabled():
-            tensors = smp_gather(tensors)
-        elif self.args.local_rank != -1:
-            tensors = distributed_concat(tensors)
-        return tensors
 
     # Copied from Accelerate.
     def _pad_across_processes(self, tensor, pad_index=-100):
