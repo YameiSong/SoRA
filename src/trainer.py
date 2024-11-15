@@ -320,6 +320,19 @@ class SparseTrainerMixin:
         new_tensor = tensor.new_zeros(tuple(new_size)) + pad_index
         new_tensor[:, : old_size[1]] = tensor
         return new_tensor
+
+    def _load_state_dict_in_model(self, state_dict):
+        load_result = self.model.load_state_dict(state_dict, strict=False)
+
+        if len(load_result.missing_keys) != 0:
+            if self.model._keys_to_ignore_on_save is not None and set(load_result.missing_keys) == set(
+                self.model._keys_to_ignore_on_save
+            ):
+                self.model.tie_weights()
+            else:
+                logger.warn(f"There were missing keys in the checkpoint model loaded: {load_result.missing_keys}.")
+        if len(load_result.unexpected_keys) != 0:
+            logger.warn(f"There were unexpected keys in the checkpoint model loaded: {load_result.unexpected_keys}.")
     
     def _maybe_log_save_evaluate(self, tr_loss, model, trial, epoch, ignore_keys_for_eval):
         if self.control.should_log:
