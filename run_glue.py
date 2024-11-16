@@ -175,10 +175,10 @@ class DataTrainingArguments:
         elif self.dataset_name is not None:
             pass
         elif self.train_file is None or self.validation_file is None:
-            raise ValueError("Need either a GLUE task, a training/validation file or a dataset name.")
+            raise ValueError("Need either a GLUE task or a training/validation file.")
         else:
             train_extension = self.train_file.split(".")[-1]
-            assert train_extension in ["csv", "json"], "`train_file` should be a csv or a json file."
+            assert train_extension in ["csv", "json", "parquet"], "`train_file` should be a csv / json / parquet file."
             validation_extension = self.validation_file.split(".")[-1]
             assert (
                 validation_extension == train_extension
