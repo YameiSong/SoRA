@@ -663,22 +663,24 @@ def main():
     
 
     # Initialize our Trainer
-    optimizer, lr_scheduler = create_optimizer_and_scheduler(training_args, model, num_training_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)))
-    sparse_optimizer = None
-    sparse_scheduler = None
-    if training_args.train_sparse:
-        print("building sparse optimizer and scheduler")
-        from src.trainer import GATE_PARAM_NAME
-        valid_param_name = []
-        for n, p in model.named_parameters():
-            print(n)
-            if GATE_PARAM_NAME in n:
-                valid_param_name.append(n)
-        print("valid param name:", valid_param_name)
-        sparse_optimizer = SparseAdamW(sparse_lambda=sparse_args.sparse_lambda_2, lambda_schedule=sparse_args.lambda_schedule, max_lambda=sparse_args.max_lambda, lambda_num=sparse_args.lambda_num, params=[p for n, p in model.named_parameters() if GATE_PARAM_NAME in n and p.requires_grad], lr=sparse_args.sparse_lr)
-        sparse_scheduler = get_linear_schedule_with_warmup(sparse_optimizer, 
-        num_warmup_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)*training_args.warmup_ratio), 
-        num_training_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)))
+    optimizer, lr_scheduler = None, None
+    if training_args.do_train:
+        optimizer, lr_scheduler = create_optimizer_and_scheduler(training_args, model, num_training_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)))
+        sparse_optimizer = None
+        sparse_scheduler = None
+        if training_args.train_sparse:
+            print("building sparse optimizer and scheduler")
+            from src.trainer import GATE_PARAM_NAME
+            valid_param_name = []
+            for n, p in model.named_parameters():
+                print(n)
+                if GATE_PARAM_NAME in n:
+                    valid_param_name.append(n)
+            print("valid param name:", valid_param_name)
+            sparse_optimizer = SparseAdamW(sparse_lambda=sparse_args.sparse_lambda_2, lambda_schedule=sparse_args.lambda_schedule, max_lambda=sparse_args.max_lambda, lambda_num=sparse_args.lambda_num, params=[p for n, p in model.named_parameters() if GATE_PARAM_NAME in n and p.requires_grad], lr=sparse_args.sparse_lr)
+            sparse_scheduler = get_linear_schedule_with_warmup(sparse_optimizer, 
+            num_warmup_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)*training_args.warmup_ratio), 
+            num_training_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)))
     
     if training_args.debug_mode:
         train_dataset = eval_dataset
