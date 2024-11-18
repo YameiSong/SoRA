@@ -663,11 +663,12 @@ def main():
     
 
     # Initialize our Trainer
-    optimizer, lr_scheduler = None, None
+    optimizer = None
+    lr_scheduler = None
+    sparse_optimizer = None
+    sparse_scheduler = None
     if training_args.do_train:
         optimizer, lr_scheduler = create_optimizer_and_scheduler(training_args, model, num_training_steps=int(training_args.num_train_epochs*(len(train_dataset) / training_args.train_batch_size)))
-        sparse_optimizer = None
-        sparse_scheduler = None
         if training_args.train_sparse:
             print("building sparse optimizer and scheduler")
             from src.trainer import GATE_PARAM_NAME
