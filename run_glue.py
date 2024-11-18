@@ -614,7 +614,7 @@ def main():
     if training_args.do_predict or data_args.task_name is not None or data_args.test_file is not None:
         if "test" not in raw_datasets and "test_matched" not in raw_datasets:
             raise ValueError("--do_predict requires a test dataset")
-        predict_dataset = raw_datasets["test"]
+        predict_dataset = raw_datasets["test_matched" if data_args.task_name == "mnli" else "test"]
         if data_args.max_predict_samples is not None:
             max_predict_samples = min(len(predict_dataset), data_args.max_predict_samples)
             predict_dataset = predict_dataset.select(range(max_predict_samples))
@@ -750,24 +750,53 @@ def main():
 
             BEST_EVAL_METRIC = metrics[task_to_best_metric[data_args.task_name]]
 
+    # if training_args.do_predict:
+    #     logger.info("*** Predict ***")
+
+    #     # Loop to handle MNLI double evaluation (matched, mis-matched)
+    #     tasks = [data_args.task_name]
+    #     predict_datasets = [predict_dataset]
+
+    #     for predict_dataset, task in zip(predict_datasets, tasks):
+    #         metrics = trainer.evaluate(eval_dataset=predict_dataset)
+
+    #         max_eval_samples = (
+    #             data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
+    #         )
+    #         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
+
+    #         trainer.log_metrics("test", metrics)
+           
+    #         trainer.save_metrics("test", metrics)
+    
     if training_args.do_predict:
-        logger.info("*** Predict ***")
+        logger.info("*** Test ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
         tasks = [data_args.task_name]
         predict_datasets = [predict_dataset]
+        if data_args.task_name == "mnli":
+            tasks.append("mnli-mm")
+            predict_datasets.append(raw_datasets["test_mismatched"])
 
         for predict_dataset, task in zip(predict_datasets, tasks):
-            metrics = trainer.evaluate(eval_dataset=predict_dataset)
+            # Removing the `label` columns because it contains -1 and Trainer won't like that.
+            predict_dataset = predict_dataset.remove_columns("label")
+            predictions = trainer.predict(predict_dataset=predict_dataset).predictions
+            predictions = np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
 
-            max_eval_samples = (
-                data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
-            )
-            metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
-
-            trainer.log_metrics("test", metrics)
-           
-            trainer.save_metrics("test", metrics)
+            output_test_file = os.path.join(training_args.output_dir, f"test_results_{task}.txt")
+            logger.info(f"Saving test results to {output_test_file}")
+            if trainer.is_world_process_zero():
+                with open(output_test_file, "w") as writer:
+                    logger.info(f"***** Test results {task} *****")
+                    writer.write("index\tprediction\n")
+                    for index, item in enumerate(predictions):
+                        if is_regression:
+                            writer.write(f"{index}\t{item:3.3f}\n")
+                        else:
+                            item = label_list[item]
+                            writer.write(f"{index}\t{item}\n")
     
     logger.info("***** Final Model ******\nLora rank: %d\nNumber of trainable full param: %d\nNumber of trainable sparse param: %d, Ratio: %.4f%%\n**********" % (lora_config.lora_r, total_param, sparse_param, sparse_param / total_param * 100))
 
