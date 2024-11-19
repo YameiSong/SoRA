@@ -722,7 +722,6 @@ def main():
     
         sparse_param, total_param = compute_trainable_sparse_param(model)
 
-
         # eval on 1000 samples train set
         train_dataset_for_eval = train_dataset.shuffle(seed=42).select(range(1000))
         logger.info("*** Evaluate on training subset ***")
@@ -730,6 +729,8 @@ def main():
         trainer.log_metrics("eval_train", metrics)
         trainer.save_metrics("eval_train", metrics)
         BEST_TRAIN_METRIC = metrics["eval_train_" + "_".join(task_to_best_metric[data_args.task_name].split("_")[1:])]
+
+        logger.info("***** Final Model ******\nLora rank: %d\nNumber of trainable full param: %d\nNumber of trainable sparse param: %d, Ratio: %.4f%%\n**********" % (lora_config.lora_r, total_param, sparse_param, sparse_param / total_param * 100))
 
 
     # Evaluation
@@ -800,8 +801,6 @@ def main():
                         else:
                             item = label_list[item]
                             writer.write(f"{index}\t{item}\n")
-    
-    logger.info("***** Final Model ******\nLora rank: %d\nNumber of trainable full param: %d\nNumber of trainable sparse param: %d, Ratio: %.4f%%\n**********" % (lora_config.lora_r, total_param, sparse_param, sparse_param / total_param * 100))
 
 
     def compute_metrics_in_schedule(mode, p: EvalPrediction):
