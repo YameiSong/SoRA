@@ -720,16 +720,16 @@ def main():
         trainer.save_metrics("train", metrics)
         trainer.save_state()
     
-    sparse_param, total_param = compute_trainable_sparse_param(model)
+        sparse_param, total_param = compute_trainable_sparse_param(model)
 
 
-    # eval on 1000 samples train set
-    train_dataset_for_eval = train_dataset.shuffle(seed=42).select(range(1000))
-    logger.info("*** Evaluate on training subset ***")
-    metrics = trainer.evaluate(eval_dataset=train_dataset_for_eval, metric_key_prefix = "eval_train")
-    trainer.log_metrics("eval_train", metrics)
-    trainer.save_metrics("eval_train", metrics)
-    BEST_TRAIN_METRIC = metrics["eval_train_" + "_".join(task_to_best_metric[data_args.task_name].split("_")[1:])]
+        # eval on 1000 samples train set
+        train_dataset_for_eval = train_dataset.shuffle(seed=42).select(range(1000))
+        logger.info("*** Evaluate on training subset ***")
+        metrics = trainer.evaluate(eval_dataset=train_dataset_for_eval, metric_key_prefix = "eval_train")
+        trainer.log_metrics("eval_train", metrics)
+        trainer.save_metrics("eval_train", metrics)
+        BEST_TRAIN_METRIC = metrics["eval_train_" + "_".join(task_to_best_metric[data_args.task_name].split("_")[1:])]
 
 
     # Evaluation
